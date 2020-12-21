@@ -54,7 +54,7 @@ func (route *UniswapV2Router02) addLiquidity(tokenA common.Address, tokenB commo
 	} else {
 		amountBOptimal := library.Quote(amountADesired, reserveA, reserveB)
 		if amountBOptimal.Cmp(amountBDesired) != 1 {
-			amountA, amountB = amountADesired, amountBDesired
+			amountA, amountB = amountADesired, amountBOptimal
 		} else {
 			amountAOptimal := library.Quote(amountBDesired, reserveB, reserveA)
 			if amountBOptimal.Cmp(amountBDesired) == 1 {
@@ -70,8 +70,10 @@ func (route *UniswapV2Router02) addLiquidity(tokenA common.Address, tokenB commo
 func (route *UniswapV2Router02) AddLiquidity(tokenA common.Address, tokenB common.Address, amountADesired, amountBDesired, amountAMin, amountBMin *big.Int, to common.Address) (amountA, amountB, liquidity *big.Int) {
 	amountA, amountB = route.addLiquidity(tokenA, tokenB, amountADesired, amountBDesired, amountAMin, amountBMin)
 	pair := route.Factory.GetPair(tokenA, tokenB)
-	pair.Token0.TransferFrom(to, pair.Address, amountA)
-	pair.Token1.TransferFrom(to, pair.Address, amountB)
+	token0, _ := route.Factory.AddressToInstance.Load(tokenA)
+	token1, _ := route.Factory.AddressToInstance.Load(tokenB)
+	token0.(*erc20.UniswapV2ERC20).TransferFrom(to, pair.Address, amountA)
+	token1.(*erc20.UniswapV2ERC20).TransferFrom(to, pair.Address, amountB)
 	liquidity = pair.Mint(to)
 	return
 }
